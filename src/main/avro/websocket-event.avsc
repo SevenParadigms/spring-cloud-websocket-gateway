@@ -1,0 +1,30 @@
+{
+  "namespace": "io.github.sevenparadigms.gateway.kafka.model",
+  "type": "record",
+  "name": "WebsocketEvent",
+  "fields": [
+    {
+      "name": "username",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String",
+        "default": "null"
+      }
+    },
+    {
+      "name": "baseUrl",
+      "type": "string",
+      "avro.java.string": "String"
+    },
+    {
+      "name": "uri",
+      "type": "string",
+      "avro.java.string": "String"
+    },
+    {
+      "name": "body",
+      "type": "string",
+      "avro.java.string": "String"
+    }
+  ]
+}

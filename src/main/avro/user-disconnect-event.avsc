@@ -1,0 +1,16 @@
+{
+  "namespace": "io.github.sevenparadigms.gateway.kafka.model",
+  "type": "record",
+  "name": "UserDisconnectEvent",
+  "fields": [
+    {
+      "name": "username",
+      "type": "string"
+    },
+    {
+      "name": "timeOut",
+      "type":  "boolean",
+      "default": false
+    }
+  ]
+}

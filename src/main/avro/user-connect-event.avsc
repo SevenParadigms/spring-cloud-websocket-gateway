@@ -1,0 +1,20 @@
+{
+  "namespace": "io.github.sevenparadigms.gateway.kafka.model",
+  "type": "record",
+  "name": "UserConnectEvent",
+  "fields": [
+    {
+      "name": "username",
+      "type": "string"
+    },
+    {
+      "name": "roles",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

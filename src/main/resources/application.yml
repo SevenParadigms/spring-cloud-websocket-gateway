@@ -1,0 +1,10 @@
+reactor:
+  kafka:
+    income-websocket-topic: websocket-wrapper
+    user-connect-topic: user-connect-event
+    user-disconnect-topic: user-disconnect-event
+    broker: localhost:9092
+    group-id: websocket-gateway
+    serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+    schema-registry-url: http://localhost:8081

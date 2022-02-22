@@ -1,0 +1,3 @@
+# spring-cloud-websocket-gateway
+
+Application provide Spring Cloud Gateway with WebSocket factory to shadow convert ws-request to http-request and http-response to ws-response
