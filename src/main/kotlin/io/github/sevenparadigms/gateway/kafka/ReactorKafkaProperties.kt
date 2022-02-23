@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConstructorBinding
 @ConstructorBinding
 @ConfigurationProperties(prefix = "reactor.kafka")
 data class ReactorKafkaProperties(
-    val incomeWebsocketTopic: String,
+    val websocketTopic: String,
     val userConnectTopic: String,
     val userDisconnectTopic: String,
     val broker: String,

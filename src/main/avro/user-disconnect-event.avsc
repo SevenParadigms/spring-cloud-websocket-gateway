@@ -8,7 +8,7 @@
       "type": "string"
     },
     {
-      "name": "timeOut",
+      "name": "isTimeOut",
       "type":  "boolean",
       "default": false
     }

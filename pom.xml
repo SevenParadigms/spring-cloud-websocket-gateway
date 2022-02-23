@@ -17,11 +17,12 @@
 		<java.version>11</java.version>
 		<kotlin.version>1.6.10</kotlin.version>
 		<spring-cloud.version>2021.0.0</spring-cloud.version>
-		<abac-security.version>1.0.4</abac-security.version>
-		<reactor-kafka.version>1.3.10</reactor-kafka.version>
-		<netty.version>4.1.74.Final</netty.version>
 		<reactor-bom.version>2020.0.16</reactor-bom.version>
+		<abac-security.version>1.0.4</abac-security.version>
+		<netty.version>4.1.74.Final</netty.version>
+		<reactor-kafka.version>1.3.10</reactor-kafka.version>
 		<avro.version>1.11.0</avro.version>
+		<kafka-avro.version>7.0.1</kafka-avro.version>
 	</properties>
 
 	<dependencies>
@@ -47,6 +48,15 @@
 			<artifactId>spring-cloud-starter-gateway</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-codec-http</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-transport-native-epoll</artifactId>
+			<classifier>linux-x86_64</classifier>
+		</dependency>
+		<dependency>
 			<groupId>io.projectreactor.kafka</groupId>
 			<artifactId>reactor-kafka</artifactId>
 			<version>${reactor-kafka.version}</version>
@@ -54,14 +64,13 @@
 		<dependency>
 			<groupId>io.confluent</groupId>
 			<artifactId>kafka-avro-serializer</artifactId>
-			<version>7.0.1</version>
+			<version>${kafka-avro.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.avro</groupId>
 			<artifactId>avro</artifactId>
 			<version>${avro.version}</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
