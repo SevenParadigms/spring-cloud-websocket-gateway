@@ -19,7 +19,7 @@ import java.time.Duration
 @Configuration
 class KafkaConfiguration(val kafkaProperties: ReactorKafkaProperties) {
     @Bean
-    private fun listenWebsocketEvent(websocketFactory: WebsocketFactory): Mono<Void> {
+    fun listenWebsocketEvent(websocketFactory: WebsocketFactory): Mono<Void> {
         val receiverOptions = ReceiverOptions.create<String, WebsocketEvent>(
             mapOf(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,

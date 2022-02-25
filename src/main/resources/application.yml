@@ -1,3 +1,5 @@
+spring:
+  main.allow-bean-definition-overriding: true
 reactor:
   kafka:
     websocket-topic: websocket-transport
