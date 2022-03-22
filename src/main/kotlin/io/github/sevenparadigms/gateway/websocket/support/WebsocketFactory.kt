@@ -45,7 +45,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
             .flatMap { authenticationToken: UsernamePasswordAuthenticationToken ->
                 kafkaPublisher.publishConnect(UserConnectEvent.newBuilder().setUsername(authenticationToken.name)
                         .setRoles(authenticationToken.authorities.map { it.authority }).build()
-                )
+                ).subscribe()
                 val output = session.send(Flux.create {
                     clients[authenticationToken.name] = WebsocketSessionChain(session, it)
                 })
@@ -53,26 +53,30 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     .map { obj: WebSocketMessage -> obj.payloadAsText.parseJson(MessageWrapper::class.java) }
                     .doOnNext { handling(it, authenticationToken.name) }.then()
                 Mono.zip(input, output).then().doFinally { signal: SignalType ->
-                    clients.remove(authenticationToken.name)
                     kafkaPublisher.publishDisconnect(
                         UserDisconnectEvent.newBuilder().setUsername(authenticationToken.name).build()
-                    )
-                    info("WebSocket revoke connection with signal[${signal.name}] and user[${authenticationToken.name}]")
+                    ).subscribe {
+                        val sessionChain = clients[authenticationToken.name]
+                        clients.remove(authenticationToken.name)
+                        info("WebSocket revoke connection with signal[${signal.name}] and user[${authenticationToken.name}]")
+                        sessionChain?.session?.close()
+                    }
                 }
             }
     }
 
-    @Scheduled(fixedDelay = 1000 * 60 * 60)
+    @Scheduled(fixedDelay = 1000 * 60 * 10)
     fun disconnectForgottenWebSessions() {
         clients.clone().keys.parallelStream().forEach { key ->
             val value = clients[key]
             if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 60) {
-                value.session.close()
-                clients.remove(key)
                 kafkaPublisher.publishDisconnect(
                     UserDisconnectEvent.newBuilder().setUsername(key).setIsTimeOut(true).build()
-                )
-                info("WebSocket disconnect by timeout and user[$key]")
+                ).subscribe {
+                    clients.remove(key)
+                    value.session.close()
+                    info("WebSocket disconnect by timeout and user[$key]")
+                }
             }
         }
     }
