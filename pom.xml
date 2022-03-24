@@ -17,7 +17,7 @@
 		<kotlin.version>1.6.10</kotlin.version>
 		<spring-cloud.version>2021.0.0</spring-cloud.version>
 		<reactor-bom.version>2020.0.16</reactor-bom.version>
-		<abac-security.version>1.2.0</abac-security.version>
+		<abac-security.version>1.2.1</abac-security.version>
 		<netty.version>4.1.75.Final</netty.version>
 		<reactor-kafka.version>1.3.10</reactor-kafka.version>
 		<avro.version>1.11.0</avro.version>
@@ -114,7 +114,6 @@
 
 	<build>
 		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
