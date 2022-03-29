@@ -7,7 +7,7 @@ import io.github.sevenparadigms.gateway.kafka.model.UserDisconnectEvent
 import io.github.sevenparadigms.gateway.websocket.model.MessageWrapper
 import io.github.sevenparadigms.gateway.websocket.model.WebsocketEntryPoint
 import io.github.sevenparadigms.gateway.websocket.model.WebsocketSessionChain
-import org.sevenparadigms.kotlin.common.clone
+import org.sevenparadigms.kotlin.common.copy
 import org.sevenparadigms.kotlin.common.debug
 import org.sevenparadigms.kotlin.common.info
 import org.sevenparadigms.kotlin.common.parseJson
@@ -67,7 +67,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
 
     @Scheduled(fixedDelay = 1000 * 60 * 10)
     fun disconnectForgottenWebSessions() {
-        clients.clone().keys.parallelStream().forEach { key ->
+        clients.copy().keys.parallelStream().forEach { key ->
             val value = clients[key]
             if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 60) {
                 kafkaPublisher.publishDisconnect(
