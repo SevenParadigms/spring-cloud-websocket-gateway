@@ -1,12 +1,14 @@
 = spring-cloud-websocket-gateway
 
 Application provide Spring Cloud Gateway with WebSocket factory to shadow
-convert websocket-request to http-request and http-response to websocket-response.By JWT-validation is using only token sign verification with RSA public key for most performance.
+convert websocket-request to http-request and http-response to websocket-response.
+
+JWT-validation based only on sign verification with RSA public key and for most performance token cached in Hazelcast CacheManager in security layer.
 
 To export public key from keystore use:
 
 `openssl pkcs12 -clcerts -nokeys -out public.pem -in gateway.p12`
 
-Get JWT-token from project with `gateway.p12` keystore from `auth` method:
+You can get jwt-token from project with `gateway.p12` keystore:
 
 `https://github.com/SevenParadigms/webflux-dsl-abac-example`

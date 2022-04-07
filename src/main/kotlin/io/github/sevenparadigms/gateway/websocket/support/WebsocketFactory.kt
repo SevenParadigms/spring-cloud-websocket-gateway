@@ -43,7 +43,8 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
         return session.handshakeInfo.principal
             .cast(UsernamePasswordAuthenticationToken::class.java)
             .flatMap { authenticationToken: UsernamePasswordAuthenticationToken ->
-                kafkaPublisher.publishConnect(UserConnectEvent.newBuilder().setUsername(authenticationToken.name)
+                kafkaPublisher.publishConnect(
+                    UserConnectEvent.newBuilder().setUsername(authenticationToken.name)
                         .setRoles(authenticationToken.authorities.map { it.authority }).build()
                 ).subscribe()
                 val output = session.send(Flux.create {
@@ -84,18 +85,16 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
     fun handling(message: MessageWrapper, username: String) {
         clients[username]!!.stamp = LocalDateTime.now()
         val webClient = Beans.of(WebClient.Builder::class.java).baseUrl(message.baseUrl).build()
-        val response = when (message.type) {
+        when (message.type) {
             HttpMethod.GET -> webClient.get().uri(message.uri).retrieve()
             HttpMethod.POST -> webClient.post().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
             HttpMethod.PUT -> webClient.put().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
             HttpMethod.DELETE -> webClient.delete().uri(message.uri).retrieve()
-            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body))
-                .retrieve()
+            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
             HttpMethod.HEAD -> webClient.head().uri(message.uri).retrieve()
             HttpMethod.OPTIONS -> webClient.options().uri(message.uri).retrieve()
             HttpMethod.TRACE -> webClient.method(HttpMethod.TRACE).uri(message.uri).retrieve()
         }
-        response
             .onStatus({ status -> status.isError })
             { clientResponse ->
                 clientResponse.bodyToMono(ByteArrayResource::class.java)
@@ -110,8 +109,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     }
             }
             .bodyToMono(JsonNode::class.java).subscribe {
-                info("Request[${message.baseUrl}${message.uri}] by user[$username] accepted")
-                debug(it.toString())
+                debug("Request[${message.baseUrl}${message.uri}] by user[$username] accepted\r\n$it")
                 clients[username]!!.sendMessage(message.copy(body = it))
             }
     }
