@@ -1,14 +1,14 @@
 = spring-cloud-websocket-gateway
 
 Application provide Spring Cloud Gateway with WebSocket factory to shadow
-convert websocket-request to http-request and http-response to websocket-response.
-
-JWT-validation based only on sign verification with RSA public key and for most performance token cached in Hazelcast CacheManager in security layer.
+convert websocket-request to http-request and http-response to websocket-response. By JWT validation is using only token sign verification with RSA public key and for most performance result at first time cached in Hazelcast in-pods embedded cluster.
 
 To export public key from keystore use:
 
 `openssl pkcs12 -clcerts -nokeys -out public.pem -in gateway.p12`
 
-You can get jwt-token from project with `gateway.p12` keystore:
+JWT-token capture from project with actual public key `gateway.p12` keystore:
 
 `https://github.com/SevenParadigms/webflux-dsl-abac-example`
+
+All models from Avro schema is manually created because source code generation not need and is not Kotlin.

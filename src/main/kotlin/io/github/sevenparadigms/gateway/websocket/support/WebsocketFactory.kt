@@ -44,8 +44,8 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
             .cast(UsernamePasswordAuthenticationToken::class.java)
             .flatMap { authenticationToken: UsernamePasswordAuthenticationToken ->
                 kafkaPublisher.publishConnect(
-                    UserConnectEvent.newBuilder().setUsername(authenticationToken.name)
-                        .setRoles(authenticationToken.authorities.map { it.authority }).build()
+                    UserConnectEvent(username = authenticationToken.name,
+                        roles = authenticationToken.authorities.map { it.authority })
                 ).subscribe()
                 val output = session.send(Flux.create {
                     clients[authenticationToken.name] = WebsocketSessionChain(session, it)
@@ -55,7 +55,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     .doOnNext { handling(it, authenticationToken.name) }.then()
                 Mono.zip(input, output).then().doFinally { signal: SignalType ->
                     kafkaPublisher.publishDisconnect(
-                        UserDisconnectEvent.newBuilder().setUsername(authenticationToken.name).build()
+                        UserDisconnectEvent(username = authenticationToken.name)
                     ).subscribe {
                         val sessionChain = clients[authenticationToken.name]
                         clients.remove(authenticationToken.name)
@@ -72,7 +72,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
             val value = clients[key]
             if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 60) {
                 kafkaPublisher.publishDisconnect(
-                    UserDisconnectEvent.newBuilder().setUsername(key).setIsTimeOut(true).build()
+                    UserDisconnectEvent(username = key, isTimeOut = true)
                 ).subscribe {
                     clients.remove(key)
                     value.session.close()
@@ -85,16 +85,18 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
     fun handling(message: MessageWrapper, username: String) {
         clients[username]!!.stamp = LocalDateTime.now()
         val webClient = Beans.of(WebClient.Builder::class.java).baseUrl(message.baseUrl).build()
-        when (message.type) {
+        val response = when (message.type) {
             HttpMethod.GET -> webClient.get().uri(message.uri).retrieve()
             HttpMethod.POST -> webClient.post().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
             HttpMethod.PUT -> webClient.put().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
             HttpMethod.DELETE -> webClient.delete().uri(message.uri).retrieve()
-            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
+            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body))
+                .retrieve()
             HttpMethod.HEAD -> webClient.head().uri(message.uri).retrieve()
             HttpMethod.OPTIONS -> webClient.options().uri(message.uri).retrieve()
             HttpMethod.TRACE -> webClient.method(HttpMethod.TRACE).uri(message.uri).retrieve()
         }
+        response
             .onStatus({ status -> status.isError })
             { clientResponse ->
                 clientResponse.bodyToMono(ByteArrayResource::class.java)
@@ -109,7 +111,8 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     }
             }
             .bodyToMono(JsonNode::class.java).subscribe {
-                debug("Request[${message.baseUrl}${message.uri}] by user[$username] accepted\r\n$it")
+                info("Request[${message.baseUrl}${message.uri}] by user[$username] accepted")
+                debug(it.toString())
                 clients[username]!!.sendMessage(message.copy(body = it))
             }
     }
