@@ -11,4 +11,4 @@ JWT-token capture from project with actual public key `gateway.p12` keystore:
 
 `https://github.com/SevenParadigms/webflux-dsl-abac-example`
 
-All models from Avro schema is manually created because source code generation not need and is not Kotlin.
+All Apache Avro schema is manually created with simple data class because generated source code is a not Kotlin and have a lot of unnecessary logic.
