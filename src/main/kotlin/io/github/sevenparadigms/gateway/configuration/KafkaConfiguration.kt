@@ -9,6 +9,8 @@ import io.github.sevenparadigms.gateway.websocket.model.MessageWrapper
 import io.github.sevenparadigms.gateway.websocket.support.WebsocketFactory
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.sevenparadigms.kotlin.common.copyTo
+import org.sevenparadigms.kotlin.common.debug
+import org.sevenparadigms.kotlin.common.objectToJson
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import reactor.core.publisher.Mono
@@ -36,6 +38,7 @@ class KafkaConfiguration(val kafkaProperties: ReactorKafkaProperties) {
             .subscription(setOf(kafkaProperties.websocketTopic))
         return KafkaReceiver.create(receiverOptions).receive().map { it.value() }
             .doOnNext {
+                debug("Transfer kafka message to websocket: " + it.objectToJson())
                 websocketFactory.get(it.username!!)?.sendMessage(it.copyTo(MessageWrapper()))
             }.then()
     }

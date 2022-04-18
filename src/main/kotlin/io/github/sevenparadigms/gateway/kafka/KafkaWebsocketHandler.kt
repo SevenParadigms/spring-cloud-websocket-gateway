@@ -11,5 +11,5 @@ class KafkaHandler(private val kafkaPublisher: EventDrivenPublisher) {
     fun publish(request: ServerRequest) = request.bodyToMono(EventWrapper::class.java)
         .flatMap { kafkaPublisher.publish(it.topic, it.body) }
         .flatMap { ServerResponse.ok().build() }
-        .doOnError { error("Exception while trying to process event", it) }
+        .doOnError { error("Exception while trying to process event: " + it.message) }
 }
