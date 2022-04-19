@@ -25,7 +25,7 @@ class EventDrivenPublisher(private val kafkaProperties: ReactorKafkaProperties) 
         KafkaSender.create<String, T>(SenderOptions.create(producerProps)).createOutbound()
             .send(Mono.just(ProducerRecord(topic, key, event)))
             .then()
-            .doOnSuccess { debug("Successfully sent $topic[$event] with id[$key]") }
+            .doOnSuccess { debug { "Successfully sent $topic[$event] with id[$key]" } }
 
     fun publishConnect(event: UserConnectEvent) = publish(kafkaProperties.userConnectTopic, event)
     fun publishDisconnect(event: UserDisconnectEvent) = publish(kafkaProperties.userDisconnectTopic, event)

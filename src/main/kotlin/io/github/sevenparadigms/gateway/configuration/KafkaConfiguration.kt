@@ -38,7 +38,7 @@ class KafkaConfiguration(val kafkaProperties: ReactorKafkaProperties) {
             .subscription(setOf(kafkaProperties.websocketTopic))
         return KafkaReceiver.create(receiverOptions).receive().map { it.value() }
             .doOnNext {
-                debug("Transfer kafka message to websocket: " + it.objectToJson())
+                debug { "Transfer kafka message to websocket: " + it.objectToJson() }
                 websocketFactory.get(it.username!!)?.sendMessage(it.copyTo(MessageWrapper()))
             }.then()
     }

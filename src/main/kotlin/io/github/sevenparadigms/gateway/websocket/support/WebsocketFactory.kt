@@ -12,7 +12,7 @@ import org.sevenparadigms.kotlin.common.debug
 import org.sevenparadigms.kotlin.common.info
 import org.sevenparadigms.kotlin.common.parseJson
 import org.springframework.core.io.ByteArrayResource
-import org.springframework.data.r2dbc.config.Beans
+import org.springframework.data.r2dbc.support.Beans
 import org.springframework.http.HttpMethod
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -33,12 +33,6 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 @WebsocketEntryPoint("/wsf")
 class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHandler {
-    private val clients = ConcurrentHashMap<String, WebsocketSessionChain>()
-
-    fun get(username: String): WebsocketSessionChain? = clients[username]
-
-    fun size() = clients.size
-
     override fun handle(session: WebSocketSession): Mono<Void> {
         return session.handshakeInfo.principal
             .cast(UsernamePasswordAuthenticationToken::class.java)
@@ -59,7 +53,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     ).subscribe {
                         val sessionChain = clients[authenticationToken.name]
                         clients.remove(authenticationToken.name)
-                        info("WebSocket revoke connection with signal[${signal.name}] and user[${authenticationToken.name}]")
+                        info { "WebSocket revoke connection with signal[${signal.name}] and user[${authenticationToken.name}]" }
                         sessionChain?.session?.close()
                     }
                 }
@@ -70,13 +64,13 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
     fun disconnectForgottenWebSessions() {
         clients.copy().keys.parallelStream().forEach { key ->
             val value = clients[key]
-            if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 60) {
+            if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 30) {
                 kafkaPublisher.publishDisconnect(
                     UserDisconnectEvent(username = key, isTimeOut = true)
                 ).subscribe {
                     clients.remove(key)
                     value.session.close()
-                    info("WebSocket disconnect by timeout and user[$key]")
+                    info { "WebSocket disconnect by timeout and user[$key]" }
                 }
             }
         }
@@ -111,9 +105,15 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
                     }
             }
             .bodyToMono(JsonNode::class.java).subscribe {
-                info("Request[${message.baseUrl}${message.uri}] by user[$username] accepted")
-                debug(it.toString())
+                info { "Request[${message.baseUrl}${message.uri}] by user[$username] accepted" }
+                debug { it.toString() }
                 clients[username]!!.sendMessage(message.copy(body = it))
             }
     }
+
+    fun get(username: String): WebsocketSessionChain? = clients[username]
+
+    fun size() = clients.size
+
+    private val clients = ConcurrentHashMap<String, WebsocketSessionChain>()
 }
