@@ -36,12 +36,6 @@ reactor:
 
 logging:
   level:
-    root: debug
-    com.hazelcast.jet.impl: error
-    io.r2dbc.postgresql.client: error
-    org:
-      springframework:
-        boot.autoconfigure.logging: info
-        beans.factory.support: info
-      hibernate: error
-    io.github.resilience4j.utils: info
+    root: info
+    org.apache.kafka: error
+    io.confluent.kafka: error

@@ -1,11 +1,12 @@
 package io.github.sevenparadigms.gateway.kafka
 
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.*
+import io.confluent.kafka.serializers.subject.RecordNameStrategy
 import io.github.sevenparadigms.gateway.kafka.model.UserConnectEvent
 import io.github.sevenparadigms.gateway.kafka.model.UserDisconnectEvent
-import io.github.sevenparadigms.gateway.support.schemaRegistryUrl
-import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerConfig.*
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.sevenparadigms.kotlin.common.debug
+import org.sevenparadigms.kotlin.common.info
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import reactor.kafka.sender.KafkaSender
@@ -14,18 +15,21 @@ import java.util.*
 
 @Component
 class EventDrivenPublisher(private val kafkaProperties: ReactorKafkaProperties) {
-    private val producerProps: Map<String, String> = mapOf(
-        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,
-        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to kafkaProperties.serializer,
-        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to kafkaProperties.serializer,
-        schemaRegistryUrl to kafkaProperties.schemaRegistryUrl
+    private val producerProps: Map<String, Any> = mapOf(
+        BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,
+        KEY_SERIALIZER_CLASS_CONFIG to kafkaProperties.serializer,
+        VALUE_SERIALIZER_CLASS_CONFIG to kafkaProperties.serializer,
+        SCHEMA_REGISTRY_URL_CONFIG to kafkaProperties.schemaRegistryUrl,
+        VALUE_SUBJECT_NAME_STRATEGY to RecordNameStrategy::class.java,
+        AUTO_REGISTER_SCHEMAS to true
     )
 
     fun <T> publish(topic: String, event: T, key: String = UUID.randomUUID().toString()) =
         KafkaSender.create<String, T>(SenderOptions.create(producerProps)).createOutbound()
             .send(Mono.just(ProducerRecord(topic, key, event)))
             .then()
-            .doOnSuccess { debug { "Successfully sent $topic[$event] with id[$key]" } }
+            .doOnSuccess { info { "Successfully sent to topic[$topic]: $event with id=$key" }  }
+
 
     fun publishConnect(event: UserConnectEvent) = publish(kafkaProperties.userConnectTopic, event)
     fun publishDisconnect(event: UserDisconnectEvent) = publish(kafkaProperties.userDisconnectTopic, event)

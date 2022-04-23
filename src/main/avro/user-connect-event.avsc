@@ -5,14 +5,16 @@
   "fields": [
     {
       "name": "username",
-      "type": "string"
+      "type": "string",
+      "avro.java.string": "String"
     },
     {
       "name": "roles",
       "type": {
         "type": "array",
         "items": {
-          "type": "string"
+          "type": "string",
+          "avro.java.string": "String"
         }
       }
     }

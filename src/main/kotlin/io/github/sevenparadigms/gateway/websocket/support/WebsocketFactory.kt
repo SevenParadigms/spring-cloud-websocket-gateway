@@ -36,27 +36,26 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
     override fun handle(session: WebSocketSession): Mono<Void> {
         return session.handshakeInfo.principal
             .cast(UsernamePasswordAuthenticationToken::class.java)
-            .flatMap { authenticationToken: UsernamePasswordAuthenticationToken ->
-                kafkaPublisher.publishConnect(
-                    UserConnectEvent(username = authenticationToken.name,
-                        roles = authenticationToken.authorities.map { it.authority })
-                ).subscribe()
+            .flatMap { authToken: UsernamePasswordAuthenticationToken ->
                 val output = session.send(Flux.create {
-                    clients[authenticationToken.name] = WebsocketSessionChain(session, it)
+                    clients[authToken.name] = WebsocketSessionChain(session, it)
                 })
                 val input = session.receive()
                     .map { obj: WebSocketMessage -> obj.payloadAsText.parseJson(MessageWrapper::class.java) }
-                    .doOnNext { handling(it, authenticationToken.name) }.then()
+                    .doOnNext { handling(it, authToken.name) }.then()
                 Mono.zip(input, output).then().doFinally { signal: SignalType ->
                     kafkaPublisher.publishDisconnect(
-                        UserDisconnectEvent(username = authenticationToken.name)
+                        UserDisconnectEvent(authToken.name, false)
                     ).subscribe {
-                        val sessionChain = clients[authenticationToken.name]
-                        clients.remove(authenticationToken.name)
-                        info { "WebSocket revoke connection with signal[${signal.name}] and user[${authenticationToken.name}]" }
+                        val sessionChain = clients[authToken.name]
+                        clients.remove(authToken.name)
+                        info { "Connection close with signal[${signal.name}] and user[${authToken.name}]" }
                         sessionChain?.session?.close()
                     }
                 }
+                kafkaPublisher.publishConnect(
+                    UserConnectEvent(authToken.name, authToken.authorities.map { it.authority })
+                )
             }
     }
 
@@ -66,7 +65,7 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
             val value = clients[key]
             if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 30) {
                 kafkaPublisher.publishDisconnect(
-                    UserDisconnectEvent(username = key, isTimeOut = true)
+                    UserDisconnectEvent(key, true)
                 ).subscribe {
                     clients.remove(key)
                     value.session.close()
