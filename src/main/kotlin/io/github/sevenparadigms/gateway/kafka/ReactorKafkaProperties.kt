@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConstructorBinding
 
 @ConstructorBinding
-@ConfigurationProperties(prefix = "reactor.kafka")
+@ConfigurationProperties(prefix = "kafka")
 data class ReactorKafkaProperties(
-    val websocketTopic: String,
+    val webSocketTopic: String,
     val userConnectTopic: String,
     val userDisconnectTopic: String,
     val broker: String,

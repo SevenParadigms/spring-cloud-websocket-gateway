@@ -8,16 +8,16 @@ import org.springframework.stereotype.Component
 
 @Component
 @Endpoint(id = "websocket")
-class WebsocketSession(val websocketFactory: WebsocketFactory) {
+class WebSocketSession(val websocketFactory: WebSocketFactory) {
     @ReadOperation
-    fun features(): WebEndpointResponse<Map<String, Int>> {
-        val features: MutableMap<String, Int> = HashMap()
+    fun features(): WebEndpointResponse<Map<String, Long>> {
+        val features: MutableMap<String, Long> = HashMap()
         features["count"] = websocketFactory.size()
         return WebEndpointResponse(features)
     }
 
     @ReadOperation
-    fun feature(@Selector name: String): Int? {
+    fun feature(@Selector name: String): Long? {
         return features().body[name]
     }
 }

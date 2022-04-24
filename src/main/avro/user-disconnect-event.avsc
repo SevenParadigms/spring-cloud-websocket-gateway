@@ -5,8 +5,7 @@
   "fields": [
     {
       "name": "username",
-      "type": "string",
-      "avro.java.string": "String"
+      "type": "string"
     },
     {
       "name": "isTimeOut",

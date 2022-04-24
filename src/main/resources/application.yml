@@ -1,5 +1,8 @@
 spring:
-  main.allow-bean-definition-overriding: true
+  cache:
+    gateway:
+      expireAfterAccess: 3600000 # set 60 minutes to WebSocket disconnect (default 30 min)
+      maximumSize: 60000 # in default 10k
   security:
     jwt:
       public-key:
@@ -22,17 +25,17 @@ spring:
         C5APTpX7Rj2+mU8c/fDzFA1m+LXYp2T3dbi3yVOTzSwRkE84sE18fdgRuvJfpmxL
         W3BuVKQ9/1bzpcTK1onKw7WNqrjCoO37G+d42IeDzXMdDjyI3POYYy8g/o//sp6O
         JhhMDEwt2aEAKEVlQxYzgMBn8HeUQrHSeX+ML8Q=
+  main.allow-bean-definition-overriding: true
 
-reactor:
-  kafka:
-    websocket-topic: websocket-transport
-    user-connect-topic: user-connect-event
-    user-disconnect-topic: user-disconnect-event
-    broker: localhost:9092
-    group-id: websocket-gateway
-    serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
-    deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-    schema-registry-url: http://localhost:8081
+kafka:
+  web-socket-topic: websocket-transport
+  user-connect-topic: user-connect-event
+  user-disconnect-topic: user-disconnect-event
+  broker: localhost:9092
+  group-id: websocket-gateway
+  serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+  deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+  schema-registry-url: http://localhost:8081
 
 logging:
   level:

@@ -5,9 +5,9 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.VALUE_SUBJE
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG
 import io.confluent.kafka.serializers.subject.RecordNameStrategy
 import io.github.sevenparadigms.gateway.kafka.ReactorKafkaProperties
-import io.github.sevenparadigms.gateway.kafka.model.WebsocketEvent
+import io.github.sevenparadigms.gateway.kafka.model.WebSocketEvent
 import io.github.sevenparadigms.gateway.websocket.model.MessageWrapper
-import io.github.sevenparadigms.gateway.websocket.support.WebsocketFactory
+import io.github.sevenparadigms.gateway.websocket.support.WebSocketFactory
 import org.apache.kafka.clients.consumer.ConsumerConfig.*
 import org.sevenparadigms.kotlin.common.copyTo
 import org.sevenparadigms.kotlin.common.info
@@ -22,8 +22,8 @@ import java.time.Duration
 @Configuration
 class KafkaConfiguration(val kafkaProperties: ReactorKafkaProperties) {
     @Bean
-    fun listenWebsocketEvent(websocketFactory: WebsocketFactory): Disposable {
-        val receiverOptions = ReceiverOptions.create<String, WebsocketEvent>(
+    fun listenWebSocketEvent(webSocketFactory: WebSocketFactory): Disposable {
+        val receiverOptions = ReceiverOptions.create<String, WebSocketEvent>(
             mapOf(
                 BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,
                 GROUP_ID_CONFIG to kafkaProperties.groupId,
@@ -37,15 +37,15 @@ class KafkaConfiguration(val kafkaProperties: ReactorKafkaProperties) {
             )
         ).commitInterval(Duration.ZERO)
             .commitBatchSize(0)
-            .subscription(setOf(kafkaProperties.websocketTopic))
+            .subscription(setOf(kafkaProperties.webSocketTopic))
 
         return KafkaReceiver.create(receiverOptions)
             .receive()
             .concatMap { record ->
                 Mono.fromRunnable<Void> {
                     val it = record.value()
-                    info { "Transfer kafka message to websocket: $it" }
-                    websocketFactory.get(it.username!!)?.sendMessage(it.copyTo(MessageWrapper()))
+                    info { "Transfer kafka message to WebSocket: $it" }
+                    webSocketFactory.get(it.username!!)?.sendMessage(it.copyTo(MessageWrapper()))
                 }
             }.subscribe()
     }

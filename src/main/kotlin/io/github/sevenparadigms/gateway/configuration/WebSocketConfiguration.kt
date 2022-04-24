@@ -1,7 +1,7 @@
 package io.github.sevenparadigms.gateway.configuration
 
 import io.github.sevenparadigms.abac.configuration.SecurityConfig
-import io.github.sevenparadigms.gateway.websocket.support.WebsocketHandler
+import io.github.sevenparadigms.gateway.websocket.support.WebSocketHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -15,7 +15,7 @@ import org.springframework.web.reactive.socket.server.upgrade.ReactorNettyReques
 @Import(SecurityConfig::class)
 class WebSocketConfiguration {
     @Bean
-    fun handlerMapping(): HandlerMapping = WebsocketHandler()
+    fun handlerMapping(): HandlerMapping = WebSocketHandler()
 
     @Bean
     fun webSocketService(): WebSocketService = HandshakeWebSocketService(ReactorNettyRequestUpgradeStrategy())

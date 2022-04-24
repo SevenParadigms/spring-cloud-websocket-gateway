@@ -166,15 +166,10 @@
 						<phase>generate-sources</phase>
 						<goals>
 							<goal>schema</goal>
-							<goal>protocol</goal>
-							<goal>idl-protocol</goal>
 						</goals>
 					</execution>
 				</executions>
 				<configuration>
-					<fieldVisibility>PRIVATE</fieldVisibility>
-					<customConversions>org.apache.avro.Conversions$UUIDConversion</customConversions>
-					<enableDecimalLogicalType>true</enableDecimalLogicalType>
 					<stringType>String</stringType>
 				</configuration>
 			</plugin>

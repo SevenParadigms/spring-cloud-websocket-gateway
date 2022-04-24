@@ -1,20 +1,21 @@
 package io.github.sevenparadigms.gateway.websocket.support
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.RemovalCause
 import io.github.sevenparadigms.gateway.kafka.EventDrivenPublisher
 import io.github.sevenparadigms.gateway.kafka.model.UserConnectEvent
 import io.github.sevenparadigms.gateway.kafka.model.UserDisconnectEvent
 import io.github.sevenparadigms.gateway.websocket.model.MessageWrapper
-import io.github.sevenparadigms.gateway.websocket.model.WebsocketEntryPoint
-import io.github.sevenparadigms.gateway.websocket.model.WebsocketSessionChain
-import org.sevenparadigms.kotlin.common.copy
+import io.github.sevenparadigms.gateway.websocket.model.WebSocketEntryPoint
+import io.github.sevenparadigms.gateway.websocket.model.WebSocketSessionChain
+import org.apache.commons.lang3.ObjectUtils
 import org.sevenparadigms.kotlin.common.debug
 import org.sevenparadigms.kotlin.common.info
 import org.sevenparadigms.kotlin.common.parseJson
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.data.r2dbc.support.Beans
 import org.springframework.http.HttpMethod
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -26,57 +27,53 @@ import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.SignalType
-import java.time.Duration
-import java.time.LocalDateTime
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 @Component
-@WebsocketEntryPoint("/wsf")
-class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHandler {
-    override fun handle(session: WebSocketSession): Mono<Void> {
-        return session.handshakeInfo.principal
-            .cast(UsernamePasswordAuthenticationToken::class.java)
-            .flatMap { authToken: UsernamePasswordAuthenticationToken ->
-                val output = session.send(Flux.create {
-                    clients[authToken.name] = WebsocketSessionChain(session, it)
-                })
-                val input = session.receive()
-                    .map { obj: WebSocketMessage -> obj.payloadAsText.parseJson(MessageWrapper::class.java) }
-                    .doOnNext { handling(it, authToken.name) }.then()
-                Mono.zip(input, output).then().doFinally { signal: SignalType ->
-                    kafkaPublisher.publishDisconnect(
-                        UserDisconnectEvent(authToken.name, false)
-                    ).subscribe {
-                        val sessionChain = clients[authToken.name]
-                        clients.remove(authToken.name)
-                        info { "Connection close with signal[${signal.name}] and user[${authToken.name}]" }
-                        sessionChain?.session?.close()
-                    }
-                }
-                kafkaPublisher.publishConnect(
-                    UserConnectEvent(authToken.name, authToken.authorities.map { it.authority })
-                )
-            }
-    }
-
-    @Scheduled(fixedDelay = 1000 * 60 * 10)
-    fun disconnectForgottenWebSessions() {
-        clients.copy().keys.parallelStream().forEach { key ->
-            val value = clients[key]
-            if (value != null && Duration.between(value.stamp, LocalDateTime.now()).toMinutes() > 30) {
+@WebSocketEntryPoint("/wsf")
+class WebSocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHandler {
+    private val clients = Caffeine.newBuilder()
+        .maximumSize(Beans.getProperty(Constants.GATEWAY_CACHE_SIZE, Long::class.java, 10000))
+        .expireAfterAccess(
+            Beans.getProperty(Constants.GATEWAY_CACHE_ACCESS, Long::class.java, 1800000),
+            TimeUnit.MILLISECONDS
+        )
+        .removalListener { key: String?, value: WebSocketSessionChain?, cause: RemovalCause ->
+            if (cause.wasEvicted() && ObjectUtils.isNotEmpty(key)) {
                 kafkaPublisher.publishDisconnect(
                     UserDisconnectEvent(key, true)
                 ).subscribe {
-                    clients.remove(key)
-                    value.session.close()
-                    info { "WebSocket disconnect by timeout and user[$key]" }
+                    value?.session?.close()
+                    info { "WebSocket disconnected by timeout with user[$key]" }
                 }
             }
+        }.build<String, WebSocketSessionChain>()
+
+    override fun handle(session: WebSocketSession) = session.handshakeInfo.principal
+        .cast(UsernamePasswordAuthenticationToken::class.java)
+        .flatMap { authToken: UsernamePasswordAuthenticationToken ->
+            val output = session.send(Flux.create {
+                clients.put(authToken.name, WebSocketSessionChain(session, it))
+            })
+            val input = session.receive()
+                .map { obj: WebSocketMessage -> obj.payloadAsText.parseJson(MessageWrapper::class.java) }
+                .doOnNext { handling(it, authToken.name) }.then()
+            Mono.zip(input, output).then().doFinally { signal: SignalType ->
+                kafkaPublisher.publishDisconnect(
+                    UserDisconnectEvent(authToken.name, false)
+                ).subscribe {
+                    val sessionChain = clients.getIfPresent(authToken.name)
+                    clients.invalidate(authToken.name)
+                    info { "Connection close with signal[${signal.name}] and user[${authToken.name}]" }
+                    sessionChain?.session?.close()
+                }
+            }
+            kafkaPublisher.publishConnect(
+                UserConnectEvent(authToken.name, authToken.authorities.map { it.authority })
+            )
         }
-    }
 
     fun handling(message: MessageWrapper, username: String) {
-        clients[username]!!.stamp = LocalDateTime.now()
         val webClient = Beans.of(WebClient.Builder::class.java).baseUrl(message.baseUrl).build()
         val response = when (message.type) {
             HttpMethod.GET -> webClient.get().uri(message.uri).retrieve()
@@ -106,13 +103,12 @@ class WebsocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
             .bodyToMono(JsonNode::class.java).subscribe {
                 info { "Request[${message.baseUrl}${message.uri}] by user[$username] accepted" }
                 debug { it.toString() }
-                clients[username]!!.sendMessage(message.copy(body = it))
+                val sessionChain = clients.getIfPresent(username)
+                sessionChain?.sendMessage(message.copy(body = it))
             }
     }
 
-    fun get(username: String): WebsocketSessionChain? = clients[username]
+    fun get(username: String): WebSocketSessionChain? = clients.getIfPresent(username)
 
-    fun size() = clients.size
-
-    private val clients = ConcurrentHashMap<String, WebsocketSessionChain>()
+    fun size() = clients.estimatedSize()
 }

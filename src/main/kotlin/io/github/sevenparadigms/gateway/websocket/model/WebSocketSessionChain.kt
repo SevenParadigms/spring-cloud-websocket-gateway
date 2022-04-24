@@ -4,12 +4,10 @@ import org.sevenparadigms.kotlin.common.objectToJson
 import org.springframework.web.reactive.socket.WebSocketMessage
 import org.springframework.web.reactive.socket.WebSocketSession
 import reactor.core.publisher.FluxSink
-import java.time.LocalDateTime
 
-class WebsocketSessionChain(
+class WebSocketSessionChain(
     val session: WebSocketSession,
-    private val chain: FluxSink<WebSocketMessage>,
-    var stamp: LocalDateTime = LocalDateTime.now()
+    private val chain: FluxSink<WebSocketMessage>
 ) {
     fun sendMessage(message: MessageWrapper) = chain.next(session.textMessage(message.objectToJson().toString()))
 }
