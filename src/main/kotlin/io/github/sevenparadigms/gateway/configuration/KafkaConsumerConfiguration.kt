@@ -20,7 +20,7 @@ import java.time.Duration
 
 @Configuration
 class KafkaConsumerConfiguration(val kafkaProperties: ReactorKafkaProperties) {
-    val receiverOptions = ReceiverOptions.create<String, WebSocketEvent>(
+    private val receiverOptions = ReceiverOptions.create<String, WebSocketEvent>(
         mapOf(
             BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,
             GROUP_ID_CONFIG to kafkaProperties.groupId,
@@ -36,10 +36,8 @@ class KafkaConsumerConfiguration(val kafkaProperties: ReactorKafkaProperties) {
         .commitBatchSize(0)
         .subscription(setOf(kafkaProperties.webSocketTopic))
 
-    val receiver: KafkaReceiver<String, WebSocketEvent> = KafkaReceiver.create(receiverOptions)
-
     @Bean
-    fun listenWebSocketEvent(webSocketFactory: WebSocketFactory) = receiver
+    fun listenWebSocketEvent(webSocketFactory: WebSocketFactory) = KafkaReceiver.create(receiverOptions)
         .receive()
         .concatMap { record ->
             Mono.fromRunnable<Void> {
