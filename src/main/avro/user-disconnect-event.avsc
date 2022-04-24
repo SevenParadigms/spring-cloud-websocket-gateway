@@ -8,6 +8,10 @@
       "type": "string"
     },
     {
+      "name": "hash",
+      "type": "long"
+    },
+    {
       "name": "isTimeOut",
       "type":  "boolean",
       "default": false

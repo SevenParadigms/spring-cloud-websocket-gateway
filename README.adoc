@@ -15,17 +15,19 @@ To run need https://docs.confluent.io/platform/current/quickstart/ce-docker-quic
 
 Generate avro classes: `mvn compile`. After run application in Offset Explorer can look config of topics.
 
-Send Kafka message to any topic with POST[/kafka-websocket]:
+Send Kafka message to any topic with POST[/kafka]:
 
 [source,json]
 ----
 {
     "topic": "websocket-transport",
     "body": {
-        "username": "bro",
+        "name": "bro",
         "baseUrl": "http://gateway-service",
         "uri": "kafka-websocket",
         "body": "{'name':'...'}"
     }
 }
 ----
+
+if choose `websocket-transport` topic then message go outside throw WebSocket to `bro` user in browser or mobile application.

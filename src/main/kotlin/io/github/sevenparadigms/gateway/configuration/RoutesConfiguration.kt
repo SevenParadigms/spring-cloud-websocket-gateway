@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.server.router
 class RoutesConfiguration(private val kafkaHandler: KafkaHandler) {
     @Bean
     fun route(): RouterFunction<ServerResponse> = router {
-        ("/kafka-websocket").nest {
+        ("/kafka").nest {
             accept(MediaType.APPLICATION_JSON).nest {
                 POST("", kafkaHandler::publish)
             }

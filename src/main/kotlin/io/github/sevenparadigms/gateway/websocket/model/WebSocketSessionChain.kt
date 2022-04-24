@@ -7,6 +7,7 @@ import reactor.core.publisher.FluxSink
 
 class WebSocketSessionChain(
     val session: WebSocketSession,
+    val tokenHash: Long,
     private val chain: FluxSink<WebSocketMessage>
 ) {
     fun sendMessage(message: MessageWrapper) = chain.next(session.textMessage(message.objectToJson().toString()))

@@ -41,9 +41,9 @@ class WebSocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
         .removalListener { key: String?, value: WebSocketSessionChain?, cause: RemovalCause ->
             if (cause.wasEvicted() && ObjectUtils.isNotEmpty(key)) {
                 kafkaPublisher.publishDisconnect(
-                    UserDisconnectEvent(key, true)
+                    UserDisconnectEvent(key, value!!.tokenHash, true)
                 ).subscribe {
-                    value?.session?.close()
+                    value.session.close()
                     info { "WebSocket disconnected by timeout with user[$key]" }
                 }
             }
@@ -53,19 +53,21 @@ class WebSocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
         .cast(UsernamePasswordAuthenticationToken::class.java)
         .flatMap { authToken: UsernamePasswordAuthenticationToken ->
             val output = session.send(Flux.create {
-                clients.put(authToken.name, WebSocketSessionChain(session, it))
+                authToken.credentials
+                clients.put(authToken.name, WebSocketSessionChain(
+                    session = session, tokenHash = authToken.credentials as Long, chain = it))
             })
             val input = session.receive()
                 .map { obj: WebSocketMessage -> obj.payloadAsText.parseJson(MessageWrapper::class.java) }
                 .doOnNext { handling(it, authToken.name) }.then()
             Mono.zip(input, output).then().doFinally { signal: SignalType ->
+                val sessionChain = clients.getIfPresent(authToken.name)!!
                 kafkaPublisher.publishDisconnect(
-                    UserDisconnectEvent(authToken.name, false)
+                    UserDisconnectEvent(authToken.name, sessionChain.tokenHash, false)
                 ).subscribe {
-                    val sessionChain = clients.getIfPresent(authToken.name)
                     clients.invalidate(authToken.name)
+                    sessionChain.session.close()
                     info { "Connection close with signal[${signal.name}] and user[${authToken.name}]" }
-                    sessionChain?.session?.close()
                 }
             }
             kafkaPublisher.publishConnect(
@@ -77,10 +79,10 @@ class WebSocketFactory(val kafkaPublisher: EventDrivenPublisher) : WebSocketHand
         val webClient = Beans.of(WebClient.Builder::class.java).baseUrl(message.baseUrl).build()
         val response = when (message.type) {
             HttpMethod.GET -> webClient.get().uri(message.uri).retrieve()
-            HttpMethod.POST -> webClient.post().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
-            HttpMethod.PUT -> webClient.put().uri(message.uri).body(BodyInserters.fromValue(message.body)).retrieve()
+            HttpMethod.POST -> webClient.post().uri(message.uri).body(BodyInserters.fromValue(message.body!!)).retrieve()
+            HttpMethod.PUT -> webClient.put().uri(message.uri).body(BodyInserters.fromValue(message.body!!)).retrieve()
             HttpMethod.DELETE -> webClient.delete().uri(message.uri).retrieve()
-            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body))
+            HttpMethod.PATCH -> webClient.patch().uri(message.uri).body(BodyInserters.fromValue(message.body!!))
                 .retrieve()
             HttpMethod.HEAD -> webClient.head().uri(message.uri).retrieve()
             HttpMethod.OPTIONS -> webClient.options().uri(message.uri).retrieve()
