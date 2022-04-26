@@ -19,7 +19,7 @@ import reactor.kafka.receiver.ReceiverOptions
 import java.time.Duration
 
 @Configuration
-class KafkaConsumerConfiguration(val kafkaProperties: ReactorKafkaProperties) {
+class KafkaConsumerConfiguration(kafkaProperties: ReactorKafkaProperties) {
     private val receiverOptions = ReceiverOptions.create<String, WebSocketEvent>(
         mapOf(
             BOOTSTRAP_SERVERS_CONFIG to kafkaProperties.broker,
