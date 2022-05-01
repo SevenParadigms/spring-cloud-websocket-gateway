@@ -30,4 +30,4 @@ Send Kafka message to any topic with POST[/kafka]:
 }
 ----
 
-if choose `websocket-transport` topic then message go outside throw WebSocket to `bro` user in browser or mobile application.
+if choose `websocket-transport` topic then message go outside throw WebSocket to browser or mobile application.
