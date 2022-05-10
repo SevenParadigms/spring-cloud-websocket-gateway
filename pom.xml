@@ -16,13 +16,13 @@
 
 	<properties>
 		<spring-cloud.version>2021.0.1</spring-cloud.version>
-		<abac-security.version>1.5.0</abac-security.version>
+		<abac-security.version>1.5.1</abac-security.version>
 		<reactor-kafka.version>1.3.11</reactor-kafka.version>
 		<avro.version>1.11.0</avro.version>
 		<kafka-avro.version>7.1.1</kafka-avro.version>
 		<jackson-databind.version>2.13.2.2</jackson-databind.version>
 		<hazelcast.version>5.1.1</hazelcast.version>
-		<embedded-hazelcast.version>1.2.6</embedded-hazelcast.version>
+		<embedded-hazelcast.version>1.2.7</embedded-hazelcast.version>
 
 		<java.version>11</java.version>
 		<kotlin.version>1.6.21</kotlin.version>
