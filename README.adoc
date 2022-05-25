@@ -13,7 +13,7 @@ Jwt-token capture from project with actual public key `gateway.p12` keystore:
 
 To run need https://docs.confluent.io/platform/current/quickstart/ce-docker-quickstart.html[Confluent Platform] for start schema-registry in docker. After can see topics in: http://localhost:9021/
 
-Generate avro classes: `mvn compile`. After run application in Offset Explorer can look config of topics.
+Generate avro classes: `mvn compile`. After run Offset Explorer to look topic configuration.
 
 Send Kafka message to any topic with POST[/kafka]:
 
